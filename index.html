@@ -5,9 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Reset">
+<meta name="apple-mobile-web-app-title" content="reset.">
 <meta name="theme-color" content="#0a0a0a">
-<title>Reset — Tracker</title>
+<title>reset.</title>
+
+<!-- App Icon: konzentrische Ringe in den 4 Tracker-Farben auf schwarzem Hintergrund -->
+<link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%230a0a0a'/><circle cx='90' cy='90' r='68' fill='none' stroke='%23ef4444' stroke-width='7'/><circle cx='90' cy='90' r='54' fill='none' stroke='%2322c55e' stroke-width='7'/><circle cx='90' cy='90' r='40' fill='none' stroke='%23f59e0b' stroke-width='7'/><circle cx='90' cy='90' r='26' fill='none' stroke='%233b82f6' stroke-width='7'/></svg>">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%230a0a0a'/><circle cx='90' cy='90' r='68' fill='none' stroke='%23ef4444' stroke-width='7'/><circle cx='90' cy='90' r='54' fill='none' stroke='%2322c55e' stroke-width='7'/><circle cx='90' cy='90' r='40' fill='none' stroke='%23f59e0b' stroke-width='7'/><circle cx='90' cy='90' r='26' fill='none' stroke='%233b82f6' stroke-width='7'/></svg>">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@400;500&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -37,6 +42,69 @@
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body { background: var(--bg); color: var(--ink); font-family: var(--sans); min-height: 100vh; min-height: 100dvh; overflow-x: hidden; }
+
+  /* Splash screen */
+  #splash {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    animation: splashOut 0.6s ease 1.4s forwards;
+    pointer-events: none;
+  }
+  #splash .splash-rings {
+    width: 120px;
+    height: 120px;
+    animation: splashIn 0.8s ease;
+  }
+  #splash .splash-rings circle {
+    fill: none;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-dasharray: 440;
+    stroke-dashoffset: 440;
+    transform-origin: center;
+    transform: rotate(-90deg);
+    animation: ringDraw 1.1s ease forwards;
+  }
+  #splash .splash-rings circle:nth-child(1) { stroke: #ef4444; animation-delay: 0s; }
+  #splash .splash-rings circle:nth-child(2) { stroke: #22c55e; animation-delay: 0.12s; }
+  #splash .splash-rings circle:nth-child(3) { stroke: #f59e0b; animation-delay: 0.24s; }
+  #splash .splash-rings circle:nth-child(4) { stroke: #3b82f6; animation-delay: 0.36s; }
+
+  #splash .splash-text {
+    font-family: var(--serif);
+    font-size: 56px;
+    font-style: italic;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+    opacity: 0;
+    animation: splashTextIn 0.8s ease 0.4s forwards;
+  }
+  #splash .splash-text .dot {
+    color: #ef4444;
+    font-style: normal;
+  }
+
+  @keyframes ringDraw {
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes splashIn {
+    from { transform: scale(0.85); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  @keyframes splashTextIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes splashOut {
+    to { opacity: 0; visibility: hidden; }
+  }
 
   body {
     padding: max(env(safe-area-inset-top), 16px) 16px calc(max(env(safe-area-inset-bottom), 16px) + 72px);
@@ -684,8 +752,19 @@
 </head>
 <body>
 
+<!-- Splash Screen -->
+<div id="splash">
+  <svg class="splash-rings" viewBox="0 0 160 160">
+    <circle cx="80" cy="80" r="70"/>
+    <circle cx="80" cy="80" r="56"/>
+    <circle cx="80" cy="80" r="42"/>
+    <circle cx="80" cy="80" r="28"/>
+  </svg>
+  <div class="splash-text">reset<span class="dot">.</span></div>
+</div>
+
 <header>
-  <div class="logo">re<span>·</span>set</div>
+  <div class="logo">reset<span style="color:#ef4444;font-style:normal">.</span></div>
   <button class="today-btn" id="todayBtn">Heute</button>
 </header>
 
