@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Reset">
+<meta name="theme-color" content="#0a0a0a">
+<title>Reset — Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@400;500&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --bg-elev: #141414;
+    --bg-card: #1a1a1a;
+    --ink: #fafafa;
+    --ink-dim: #a0a0a0;
+    --ink-faint: #4a4a4a;
+    --line: #222;
+    --line-soft: #1a1a1a;
+
+    --learn: #ef4444;
+    --sport: #22c55e;
+    --food:  #f59e0b;
+    --work:  #3b82f6;
+
+    --up: #22c55e;
+    --down: #ef4444;
+
+    --serif: 'Instrument Serif', Georgia, serif;
+    --sans: 'Geist', -apple-system, sans-serif;
+    --mono: 'Geist Mono', ui-monospace, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { background: var(--bg); color: var(--ink); font-family: var(--sans); min-height: 100vh; min-height: 100dvh; overflow-x: hidden; }
+
+  body {
+    padding: max(env(safe-area-inset-top), 16px) 16px calc(max(env(safe-area-inset-bottom), 16px) + 72px);
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 12px 4px 24px;
+  }
+  .logo {
+    font-family: var(--serif);
+    font-size: 28px;
+    font-style: italic;
+    letter-spacing: -0.02em;
+  }
+  .logo span { color: var(--ink-faint); font-style: normal; }
+  .today-btn {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    color: var(--ink-dim);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    border-radius: 100px;
+    cursor: pointer;
+  }
+
+  /* Page switching */
+  .page { display: none; animation: fade 0.25s ease; }
+  .page.active { display: block; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Calendar */
+  .cal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    padding: 0 4px;
+  }
+  .month-name {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-style: italic;
+  }
+  .nav-btns { display: flex; gap: 6px; }
+  .nav-btn {
+    width: 32px; height: 32px;
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    color: var(--ink-dim);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 14px;
+  }
+
+  .weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    margin-bottom: 6px;
+  }
+  .weekdays div {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-align: center;
+    padding: 4px 0;
+  }
+
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    margin-bottom: 20px;
+  }
+  .cal-day {
+    aspect-ratio: 1;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    border-radius: 50%;
+  }
+  .cal-day.empty { pointer-events: none; }
+  .cal-day.future { opacity: 0.35; }
+  .cal-day .num {
+    position: relative;
+    z-index: 2;
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--ink-dim);
+  }
+  .cal-day.today .num { color: var(--ink); font-weight: 600; }
+  .cal-day.selected { background: var(--bg-elev); }
+  .cal-day.selected .num { color: var(--ink); }
+  .cal-day svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .date-strip {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 20px 4px 20px;
+    border-top: 1px solid var(--line-soft);
+  }
+  .date-big {
+    font-family: var(--serif);
+    font-size: 34px;
+    font-style: italic;
+    line-height: 1;
+  }
+  .date-big span {
+    color: var(--ink-faint);
+    font-style: normal;
+    font-family: var(--sans);
+    font-size: 13px;
+    display: block;
+    margin-top: 6px;
+    text-transform: uppercase;
+  }
+  .day-status {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-align: right;
+  }
+  .day-status .done { color: var(--ink); font-size: 28px; font-family: var(--serif); font-style: italic; display: block; }
+
+  .tracker {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+  .tracker::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--color);
+  }
+  .tracker-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 14px;
+  }
+  .tracker-name {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-style: italic;
+  }
+  .tracker-goal {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-faint);
+  }
+  .tracker-goal em {
+    color: var(--color);
+    font-style: normal;
+    font-weight: 500;
+  }
+
+  .bar-track {
+    height: 6px;
+    background: var(--line);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .bar-fill {
+    height: 100%;
+    background: var(--color);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  .hour-input-row { display: flex; gap: 8px; }
+  .hour-input {
+    flex: 1;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    -webkit-appearance: none;
+  }
+  .hour-input:focus { outline: none; border-color: var(--color); }
+  .hour-input::placeholder { color: var(--ink-faint); }
+
+  .add-btn {
+    background: var(--color);
+    border: none;
+    color: #fff;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+    padding: 0 18px;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .add-btn:active { transform: scale(0.97); }
+
+  .quick-btns { display: flex; gap: 6px; margin-top: 10px; }
+  .quick-btn {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--ink-dim);
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .quick-btn:active { background: var(--bg-card); }
+
+  .tap-tracker .tap-area {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    padding: 4px 0;
+  }
+  .tap-check {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 2px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .tap-tracker.done .tap-check {
+    background: var(--color);
+    border-color: var(--color);
+  }
+  .tap-check svg { width: 16px; height: 16px; opacity: 0; transition: opacity 0.2s; }
+  .tap-tracker.done .tap-check svg { opacity: 1; }
+  .tap-label { font-family: var(--sans); font-size: 14px; color: var(--ink-dim); }
+  .tap-tracker.done .tap-label { color: var(--ink); }
+
+  .log {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+  }
+  .log-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-dim);
+  }
+  .log-entry .time { color: var(--ink-faint); }
+  .log-entry .amount { color: var(--color); font-weight: 500; }
+  .log-entry .del {
+    background: none;
+    border: none;
+    color: var(--ink-faint);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 6px;
+  }
+
+  /* STATS PAGE */
+  .stats-h2 {
+    font-family: var(--serif);
+    font-size: 32px;
+    font-style: italic;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+  .stats-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 24px;
+  }
+
+  .range-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: var(--bg-elev);
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    margin-bottom: 24px;
+  }
+  .range-tab {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--ink-dim);
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 10px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .range-tab.active { background: var(--ink); color: var(--bg); }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .kpi {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--color);
+  }
+  .kpi-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+  .kpi-value {
+    font-family: var(--serif);
+    font-size: 32px;
+    font-style: italic;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--color);
+  }
+  .kpi-value .unit {
+    font-family: var(--sans);
+    font-style: normal;
+    font-size: 13px;
+    color: var(--ink-faint);
+    margin-left: 3px;
+  }
+  .kpi-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-dim);
+    margin-top: 6px;
+  }
+  .kpi-sub .up { color: var(--up); }
+  .kpi-sub .down { color: var(--down); }
+
+  /* Chart */
+  .chart-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .chart-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 16px;
+  }
+  .chart-title {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-style: italic;
+  }
+  .chart-trend {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .chart-trend.up { color: var(--up); }
+  .chart-trend.down { color: var(--down); }
+  .chart-trend.flat { color: var(--ink-faint); }
+
+  .chart-svg { width: 100%; height: 90px; display: block; }
+
+  .chart-meta {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-faint);
+    margin-top: 10px;
+  }
+
+  /* Best/Worst */
+  .compare-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .compare-title {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-style: italic;
+    margin-bottom: 16px;
+  }
+  .compare-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .compare-row:last-child { border-bottom: none; }
+  .compare-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .compare-val {
+    font-family: var(--serif);
+    font-size: 16px;
+    font-style: italic;
+    color: var(--ink);
+  }
+  .compare-val em { color: var(--accent, var(--ink)); font-style: normal; font-weight: 500; }
+
+  .weekday-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-top: 10px;
+  }
+  .weekday-bar {
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--ink-faint);
+  }
+  .weekday-bar .bar {
+    height: 40px;
+    background: var(--line);
+    border-radius: 4px;
+    margin-bottom: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+  .weekday-bar .bar-inner {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: var(--color, var(--ink-dim));
+    border-radius: 4px;
+  }
+
+  .empty-state {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--ink-faint);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 15px;
+  }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(10, 10, 10, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--line);
+    padding: 10px 16px max(env(safe-area-inset-bottom), 10px);
+    z-index: 50;
+  }
+  .bottom-nav-inner {
+    max-width: 480px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+  .nav-item {
+    background: transparent;
+    border: none;
+    color: var(--ink-faint);
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 10px 0;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .nav-item svg { width: 20px; height: 20px; }
+  .nav-item.active { color: var(--ink); }
+
+  .toast {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--ink);
+    color: var(--bg);
+    padding: 12px 22px;
+    border-radius: 100px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: transform 0.3s ease;
+    z-index: 100;
+    font-weight: 500;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  .loading-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--ink-faint);
+    border-radius: 50%;
+    animation: pulse 1.4s infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">re<span>·</span>set</div>
+  <button class="today-btn" id="todayBtn">Heute</button>
+</header>
+
+<!-- ============ DAILY PAGE ============ -->
+<div class="page active" id="page-daily">
+  <div class="cal-header">
+    <div class="month-name" id="monthName"></div>
+    <div class="nav-btns">
+      <button class="nav-btn" id="prevMonth">‹</button>
+      <button class="nav-btn" id="nextMonth">›</button>
+    </div>
+  </div>
+
+  <div class="weekdays">
+    <div>Mo</div><div>Di</div><div>Mi</div><div>Do</div><div>Fr</div><div>Sa</div><div>So</div>
+  </div>
+
+  <div class="cal-grid" id="calGrid"></div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span>Lernen</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#22c55e"></span>Sport</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>Essen</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#3b82f6"></span>Zukunft</div>
+  </div>
+
+  <div class="date-strip">
+    <div class="date-big" id="selectedDateBig"></div>
+    <div class="day-status">
+      <span class="done" id="completedCount">0/4</span>
+      abgeschlossen
+    </div>
+  </div>
+
+  <div class="tracker" style="--color: var(--learn)" id="learnTracker">
+    <div class="tracker-head">
+      <div class="tracker-name">Lernen</div>
+      <div class="tracker-goal"><em id="learnDone">0.0h</em> / 5h</div>
+    </div>
+    <div class="bar-track"><div class="bar-fill" id="learnBar" style="width: 0%"></div></div>
+    <div class="hour-input-row">
+      <input type="number" class="hour-input" id="learnInput" placeholder="Stunden (z.B. 1.5)" step="0.25" min="0" max="12">
+      <button class="add-btn" id="learnAdd">+ Add</button>
+    </div>
+    <div class="quick-btns">
+      <button class="quick-btn" data-tracker="learn" data-val="0.5">+30min</button>
+      <button class="quick-btn" data-tracker="learn" data-val="1">+1h</button>
+      <button class="quick-btn" data-tracker="learn" data-val="2">+2h</button>
+    </div>
+    <div class="log" id="learnLog" style="display:none"></div>
+  </div>
+
+  <div class="tracker tap-tracker" style="--color: var(--sport)" id="sportTracker">
+    <div class="tracker-head">
+      <div class="tracker-name">Sport</div>
+      <div class="tracker-goal">Tap wenn erledigt</div>
+    </div>
+    <div class="tap-area" data-tracker="sport">
+      <div class="tap-check">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 7" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="tap-label">Heute Sport gemacht</div>
+    </div>
+  </div>
+
+  <div class="tracker tap-tracker" style="--color: var(--food)" id="foodTracker">
+    <div class="tracker-head">
+      <div class="tracker-name">Essen</div>
+      <div class="tracker-goal">Tap wenn erreicht</div>
+    </div>
+    <div class="tap-area" data-tracker="food">
+      <div class="tap-check">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 7" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="tap-label">Proteinziel erreicht</div>
+    </div>
+  </div>
+
+  <div class="tracker" style="--color: var(--work)" id="workTracker">
+    <div class="tracker-head">
+      <div class="tracker-name">Zukunftsbuild</div>
+      <div class="tracker-goal"><em id="workDone">0.0h</em> / 3h</div>
+    </div>
+    <div class="bar-track"><div class="bar-fill" id="workBar" style="width: 0%"></div></div>
+    <div class="hour-input-row">
+      <input type="number" class="hour-input" id="workInput" placeholder="Stunden (z.B. 0.75)" step="0.25" min="0" max="12">
+      <button class="add-btn" id="workAdd">+ Add</button>
+    </div>
+    <div class="quick-btns">
+      <button class="quick-btn" data-tracker="work" data-val="0.5">+30min</button>
+      <button class="quick-btn" data-tracker="work" data-val="1">+1h</button>
+      <button class="quick-btn" data-tracker="work" data-val="2">+2h</button>
+    </div>
+    <div class="log" id="workLog" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ============ STATS PAGE ============ -->
+<div class="page" id="page-stats">
+  <h2 class="stats-h2">Auswertung.</h2>
+  <p class="stats-sub">Deine Zahlen, ehrlich.</p>
+
+  <div class="range-tabs">
+    <button class="range-tab active" data-range="7">7 Tage</button>
+    <button class="range-tab" data-range="30">30 Tage</button>
+    <button class="range-tab" data-range="90">90 Tage</button>
+  </div>
+
+  <div id="statsContent"></div>
+
+  <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line);">
+    <div style="font-family: var(--mono); font-size: 10px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 14px;">Datensicherung</div>
+    <div style="display: flex; gap: 8px;">
+      <button id="exportBtn" style="flex: 1; background: var(--bg-elev); border: 1px solid var(--line); color: var(--ink-dim); font-family: var(--mono); font-size: 10px; padding: 12px; border-radius: 10px; cursor: pointer; letter-spacing: 0.08em; text-transform: uppercase;">Export</button>
+      <button id="importBtn" style="flex: 1; background: var(--bg-elev); border: 1px solid var(--line); color: var(--ink-dim); font-family: var(--mono); font-size: 10px; padding: 12px; border-radius: 10px; cursor: pointer; letter-spacing: 0.08em; text-transform: uppercase;">Import</button>
+    </div>
+    <input type="file" id="importFile" accept="application/json" style="display: none;">
+    <div style="font-family: var(--mono); font-size: 9px; color: var(--ink-faint); margin-top: 10px; line-height: 1.5;">Daten liegen lokal auf deinem Gerät. Mach ab und zu einen Export, um sie zu sichern.</div>
+  </div>
+</div>
+
+<!-- Bottom nav -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <button class="nav-item active" data-page="daily">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="3" y="4" width="18" height="18" rx="2"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+      </svg>
+      Daily
+    </button>
+    <button class="nav-item" data-page="stats">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <polyline points="3 17 9 11 13 15 21 7"/>
+        <polyline points="15 7 21 7 21 13"/>
+      </svg>
+      Stats
+    </button>
+  </div>
+</nav>
+
+<script>
+  const GOALS = { learn: 5, work: 3 };
+  const COLORS = { learn: '#ef4444', sport: '#22c55e', food: '#f59e0b', work: '#3b82f6' };
+
+  let selectedDate = new Date();
+  let displayMonth = new Date();
+  let currentData = { learn: [], sport: false, food: false, work: [] };
+  let allData = {}; // dateKey -> data (preloaded)
+  let statsRange = 7;
+
+  const pad = n => String(n).padStart(2, '0');
+  const dateKey = d => `day:${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  const isFuture = d => {
+    const t = new Date(); t.setHours(0,0,0,0);
+    const c = new Date(d); c.setHours(0,0,0,0);
+    return c > t;
+  };
+
+  const MONTH_NAMES = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  const WEEKDAYS = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+  const WD_SHORT = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+
+  // Storage: uses window.storage in Claude artifact, localStorage on real phone
+  const storage = {
+    async list(prefix) {
+      if (typeof window !== 'undefined' && window.storage && window.storage.list) {
+        return await window.storage.list(prefix);
+      }
+      const keys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(prefix)) keys.push(k);
+      }
+      return { keys };
+    },
+    async get(key) {
+      if (typeof window !== 'undefined' && window.storage && window.storage.get) {
+        return await window.storage.get(key);
+      }
+      const v = localStorage.getItem(key);
+      return v !== null ? { value: v } : null;
+    },
+    async set(key, value) {
+      if (typeof window !== 'undefined' && window.storage && window.storage.set) {
+        return await window.storage.set(key, value);
+      }
+      localStorage.setItem(key, value);
+      return { value };
+    }
+  };
+
+  // ————— BULK LOAD: preload everything at once —————
+  async function preloadAll() {
+    try {
+      const list = await storage.list('day:');
+      if (!list || !list.keys) return;
+      const keys = list.keys;
+      const results = await Promise.all(keys.map(k =>
+        storage.get(k).then(r => [k, r && r.value ? JSON.parse(r.value) : null]).catch(() => [k, null])
+      ));
+      results.forEach(([k, v]) => { if (v) allData[k] = v; });
+    } catch(e) {}
+  }
+
+  async function saveDay(key, data) {
+    allData[key] = data;
+    try { await storage.set(key, JSON.stringify(data)); } catch(e) {}
+  }
+
+  function getData(key) {
+    return allData[key] || null;
+  }
+
+  function computeCompletion(data) {
+    if (!data) return { learn: 0, sport: 0, food: 0, work: 0, learnH: 0, workH: 0 };
+    const learnH = (data.learn || []).reduce((s, e) => s + e.amount, 0);
+    const workH  = (data.work  || []).reduce((s, e) => s + e.amount, 0);
+    return {
+      learn: Math.min(learnH / GOALS.learn, 1),
+      sport: data.sport ? 1 : 0,
+      food:  data.food  ? 1 : 0,
+      work:  Math.min(workH / GOALS.work, 1),
+      learnH, workH,
+      sportBool: !!data.sport, foodBool: !!data.food
+    };
+  }
+
+  function formatBigDate(d) {
+    return d.getDate() + '. ' + MONTH_NAMES[d.getMonth()].slice(0,3);
+  }
+  function formatWeekday(d) {
+    if (sameDay(d, new Date())) return 'Heute';
+    const t = new Date(); t.setDate(t.getDate() - 1);
+    if (sameDay(d, t)) return 'Gestern';
+    return WEEKDAYS[d.getDay()];
+  }
+
+  function renderCalendar() {
+    const year = displayMonth.getFullYear();
+    const month = displayMonth.getMonth();
+    document.getElementById('monthName').textContent = MONTH_NAMES[month] + ' ' + year;
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startOffset = (firstDay.getDay() + 6) % 7;
+
+    const grid = document.getElementById('calGrid');
+    const frag = document.createDocumentFragment();
+
+    for (let i = 0; i < startOffset; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'cal-day empty';
+      frag.appendChild(cell);
+    }
+
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+      const d = new Date(year, month, day);
+      const cell = document.createElement('div');
+      cell.className = 'cal-day';
+      if (sameDay(d, new Date())) cell.classList.add('today');
+      if (sameDay(d, selectedDate)) cell.classList.add('selected');
+      if (isFuture(d)) cell.classList.add('future');
+
+      const num = document.createElement('div');
+      num.className = 'num';
+      num.textContent = day;
+      cell.appendChild(num);
+
+      // Rings are now computed synchronously from preloaded data
+      const svg = buildRings(computeCompletion(getData(dateKey(d))));
+      cell.appendChild(svg);
+
+      cell.addEventListener('click', () => {
+        selectedDate = new Date(d);
+        renderCalendar();
+        renderDay();
+      });
+
+      frag.appendChild(cell);
+    }
+
+    grid.innerHTML = '';
+    grid.appendChild(frag);
+  }
+
+  function buildRings(completion) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 44 44');
+
+    const rings = [
+      { r: 20, stroke: 2, color: COLORS.learn, pct: completion.learn },
+      { r: 17, stroke: 2, color: COLORS.sport, pct: completion.sport },
+      { r: 14, stroke: 2, color: COLORS.food,  pct: completion.food },
+      { r: 11, stroke: 2, color: COLORS.work,  pct: completion.work }
+    ];
+
+    rings.forEach(r => {
+      const bg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      bg.setAttribute('cx', 22);
+      bg.setAttribute('cy', 22);
+      bg.setAttribute('r', r.r);
+      bg.setAttribute('fill', 'none');
+      bg.setAttribute('stroke', r.color);
+      bg.setAttribute('stroke-opacity', '0.12');
+      bg.setAttribute('stroke-width', r.stroke);
+      svg.appendChild(bg);
+
+      if (r.pct > 0) {
+        const fg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        const circ = 2 * Math.PI * r.r;
+        fg.setAttribute('cx', 22);
+        fg.setAttribute('cy', 22);
+        fg.setAttribute('r', r.r);
+        fg.setAttribute('fill', 'none');
+        fg.setAttribute('stroke', r.color);
+        fg.setAttribute('stroke-width', r.stroke);
+        fg.setAttribute('stroke-linecap', 'round');
+        fg.setAttribute('stroke-dasharray', circ);
+        fg.setAttribute('stroke-dashoffset', circ * (1 - r.pct));
+        fg.setAttribute('transform', 'rotate(-90 22 22)');
+        svg.appendChild(fg);
+      }
+    });
+
+    return svg;
+  }
+
+  function renderDay() {
+    const key = dateKey(selectedDate);
+    const data = getData(key) || { learn: [], sport: false, food: false, work: [] };
+    currentData = {
+      learn: data.learn || [],
+      sport: !!data.sport,
+      food:  !!data.food,
+      work:  data.work || []
+    };
+
+    document.getElementById('selectedDateBig').innerHTML =
+      formatBigDate(selectedDate) + '<span>' + formatWeekday(selectedDate) + '</span>';
+
+    const learnTotal = currentData.learn.reduce((s, e) => s + e.amount, 0);
+    document.getElementById('learnDone').textContent = learnTotal.toFixed(1) + 'h';
+    document.getElementById('learnBar').style.width = Math.min(learnTotal / GOALS.learn * 100, 100) + '%';
+    renderLog('learn', currentData.learn);
+
+    const workTotal = currentData.work.reduce((s, e) => s + e.amount, 0);
+    document.getElementById('workDone').textContent = workTotal.toFixed(1) + 'h';
+    document.getElementById('workBar').style.width = Math.min(workTotal / GOALS.work * 100, 100) + '%';
+    renderLog('work', currentData.work);
+
+    document.getElementById('sportTracker').classList.toggle('done', currentData.sport);
+    document.getElementById('foodTracker').classList.toggle('done', currentData.food);
+    document.querySelector('#sportTracker .tap-label').textContent =
+      currentData.sport ? 'Erledigt ✓' : 'Heute Sport gemacht';
+    document.querySelector('#foodTracker .tap-label').textContent =
+      currentData.food  ? 'Erledigt ✓' : 'Proteinziel erreicht';
+
+    let done = 0;
+    if (learnTotal >= GOALS.learn) done++;
+    if (currentData.sport) done++;
+    if (currentData.food) done++;
+    if (workTotal >= GOALS.work) done++;
+    document.getElementById('completedCount').textContent = done + '/4';
+  }
+
+  function renderLog(kind, entries) {
+    const el = document.getElementById(kind + 'Log');
+    if (!entries.length) { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    el.innerHTML = '';
+    entries.slice().reverse().forEach((entry, revIdx) => {
+      const idx = entries.length - 1 - revIdx;
+      const row = document.createElement('div');
+      row.className = 'log-entry';
+      row.innerHTML = `
+        <span class="time">${entry.time}</span>
+        <span class="amount">+${entry.amount}h</span>
+        <button class="del" data-kind="${kind}" data-idx="${idx}">×</button>
+      `;
+      el.appendChild(row);
+    });
+  }
+
+  async function addHours(kind, amount) {
+    if (!amount || amount <= 0) return;
+    const now = new Date();
+    const time = pad(now.getHours()) + ':' + pad(now.getMinutes());
+    currentData[kind].push({ amount: Number(amount), time });
+    await persist();
+  }
+
+  async function toggleTap(kind) {
+    currentData[kind] = !currentData[kind];
+    await persist();
+  }
+
+  async function persist() {
+    await saveDay(dateKey(selectedDate), currentData);
+    renderDay();
+    renderCalendar();
+  }
+
+  // ============ STATS ============
+  function getRangeData(days) {
+    const out = [];
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const data = getData(dateKey(d));
+      out.push({ date: d, completion: computeCompletion(data) });
+    }
+    return out;
+  }
+
+  function renderStats() {
+    const days = getRangeData(statsRange);
+    const container = document.getElementById('statsContent');
+
+    const hasData = days.some(d => d.completion.learnH > 0 || d.completion.workH > 0 || d.completion.sportBool || d.completion.foodBool);
+    if (!hasData) {
+      container.innerHTML = '<div class="empty-state">Noch keine Daten.<br>Track ein paar Tage und komm zurück.</div>';
+      return;
+    }
+
+    // KPIs
+    const totalLearn = days.reduce((s, d) => s + d.completion.learnH, 0);
+    const totalWork = days.reduce((s, d) => s + d.completion.workH, 0);
+    const sportDays = days.filter(d => d.completion.sportBool).length;
+    const foodDays = days.filter(d => d.completion.foodBool).length;
+
+    // Comparison with previous period of same length
+    const prevDays = getPreviousRangeData(statsRange);
+    const prevLearn = prevDays.reduce((s, d) => s + d.completion.learnH, 0);
+    const prevWork = prevDays.reduce((s, d) => s + d.completion.workH, 0);
+    const prevSport = prevDays.filter(d => d.completion.sportBool).length;
+    const prevFood = prevDays.filter(d => d.completion.foodBool).length;
+
+    const trend = (curr, prev) => {
+      if (prev === 0 && curr === 0) return { text: '—', cls: 'flat' };
+      if (prev === 0) return { text: 'NEU', cls: 'up' };
+      const pct = Math.round(((curr - prev) / prev) * 100);
+      if (pct > 0) return { text: '↑ ' + pct + '%', cls: 'up' };
+      if (pct < 0) return { text: '↓ ' + Math.abs(pct) + '%', cls: 'down' };
+      return { text: '0%', cls: 'flat' };
+    };
+
+    const tLearn = trend(totalLearn, prevLearn);
+    const tWork  = trend(totalWork, prevWork);
+    const tSport = trend(sportDays, prevSport);
+    const tFood  = trend(foodDays, prevFood);
+
+    const avgLearn = (totalLearn / statsRange).toFixed(1);
+    const avgWork  = (totalWork / statsRange).toFixed(1);
+
+    let html = `
+      <div class="kpi-grid">
+        <div class="kpi" style="--color: var(--learn)">
+          <div class="kpi-label">Lernen gesamt</div>
+          <div class="kpi-value">${totalLearn.toFixed(1)}<span class="unit">h</span></div>
+          <div class="kpi-sub"><span class="${tLearn.cls}">${tLearn.text}</span> · Ø ${avgLearn}h/Tag</div>
+        </div>
+        <div class="kpi" style="--color: var(--work)">
+          <div class="kpi-label">Zukunftsbuild</div>
+          <div class="kpi-value">${totalWork.toFixed(1)}<span class="unit">h</span></div>
+          <div class="kpi-sub"><span class="${tWork.cls}">${tWork.text}</span> · Ø ${avgWork}h/Tag</div>
+        </div>
+        <div class="kpi" style="--color: var(--sport)">
+          <div class="kpi-label">Sport Tage</div>
+          <div class="kpi-value">${sportDays}<span class="unit">/${statsRange}</span></div>
+          <div class="kpi-sub"><span class="${tSport.cls}">${tSport.text}</span> vs. vorher</div>
+        </div>
+        <div class="kpi" style="--color: var(--food)">
+          <div class="kpi-label">Essen Tage</div>
+          <div class="kpi-value">${foodDays}<span class="unit">/${statsRange}</span></div>
+          <div class="kpi-sub"><span class="${tFood.cls}">${tFood.text}</span> vs. vorher</div>
+        </div>
+      </div>
+    `;
+
+    // Charts
+    html += buildChart('Lernen', days.map(d => d.completion.learnH), COLORS.learn, GOALS.learn, 'h');
+    html += buildChart('Zukunftsbuild', days.map(d => d.completion.workH), COLORS.work, GOALS.work, 'h');
+
+    // Weekday comparison
+    html += buildWeekdayCompare(days);
+
+    // Best & Worst day
+    html += buildBestWorst(days);
+
+    // Streaks
+    html += buildStreaks();
+
+    container.innerHTML = html;
+  }
+
+  function getPreviousRangeData(days) {
+    const out = [];
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    for (let i = days * 2 - 1; i >= days; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const data = getData(dateKey(d));
+      out.push({ date: d, completion: computeCompletion(data) });
+    }
+    return out;
+  }
+
+  function buildChart(title, values, color, goal, unit) {
+    if (!values.length) return '';
+    const W = 300, H = 80, pad = 4;
+    const max = Math.max(goal, ...values, 1);
+    const barW = (W - pad * (values.length - 1)) / values.length;
+
+    let bars = '';
+    values.forEach((v, i) => {
+      const h = (v / max) * H;
+      const x = i * (barW + pad);
+      const y = H - h;
+      const op = v >= goal ? 1 : 0.6;
+      bars += `<rect x="${x}" y="${y}" width="${barW}" height="${h || 1}" fill="${color}" opacity="${op}" rx="1.5"/>`;
+    });
+
+    // Goal line
+    const goalY = H - (goal / max) * H;
+    const goalLine = `<line x1="0" y1="${goalY}" x2="${W}" y2="${goalY}" stroke="${color}" stroke-width="1" stroke-dasharray="2,3" opacity="0.35"/>`;
+
+    // Trend
+    const firstHalf = values.slice(0, Math.floor(values.length / 2));
+    const secondHalf = values.slice(Math.floor(values.length / 2));
+    const avg1 = firstHalf.reduce((s, v) => s + v, 0) / (firstHalf.length || 1);
+    const avg2 = secondHalf.reduce((s, v) => s + v, 0) / (secondHalf.length || 1);
+    let trendText = '—', trendCls = 'flat';
+    if (avg1 > 0 || avg2 > 0) {
+      const diff = avg2 - avg1;
+      if (Math.abs(diff) < 0.1) { trendText = 'stabil'; trendCls = 'flat'; }
+      else if (diff > 0) { trendText = '↑ aufwärts'; trendCls = 'up'; }
+      else { trendText = '↓ abwärts'; trendCls = 'down'; }
+    }
+
+    const total = values.reduce((s,v) => s+v, 0);
+    const avg = (total / values.length).toFixed(1);
+    const best = Math.max(...values).toFixed(1);
+
+    return `
+      <div class="chart-card">
+        <div class="chart-head">
+          <div class="chart-title">${title}</div>
+          <div class="chart-trend ${trendCls}">${trendText}</div>
+        </div>
+        <svg class="chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+          ${goalLine}
+          ${bars}
+        </svg>
+        <div class="chart-meta">
+          <span>Ø ${avg}${unit}/Tag</span>
+          <span>Best: ${best}${unit}</span>
+          <span style="color:${color}">Ziel: ${goal}${unit}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function buildWeekdayCompare(days) {
+    // Group by weekday, compute % of goals met
+    const byWd = [[],[],[],[],[],[],[]]; // Mo-So (0=Mo)
+    days.forEach(d => {
+      const wd = (d.date.getDay() + 6) % 7;
+      // Composite score: avg of all four goal completions
+      const score = (d.completion.learn + d.completion.sport + d.completion.food + d.completion.work) / 4;
+      byWd[wd].push(score);
+    });
+    const labels = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+    const avgs = byWd.map(arr => arr.length ? arr.reduce((s,v) => s+v, 0) / arr.length : 0);
+    const maxAvg = Math.max(...avgs, 0.01);
+
+    let bars = '';
+    avgs.forEach((a, i) => {
+      const h = (a / maxAvg) * 100;
+      const pct = Math.round(a * 100);
+      bars += `
+        <div class="weekday-bar">
+          <div class="bar"><div class="bar-inner" style="height:${h}%; background: var(--ink)"></div></div>
+          <div>${labels[i]}</div>
+          <div style="color: var(--ink-dim); margin-top: 2px">${pct}%</div>
+        </div>`;
+    });
+
+    // Best weekday
+    let bestIdx = 0, worstIdx = 0;
+    avgs.forEach((a, i) => {
+      if (a > avgs[bestIdx]) bestIdx = i;
+      if (a < avgs[worstIdx]) worstIdx = i;
+    });
+
+    return `
+      <div class="compare-card">
+        <div class="compare-title">Stärkster Wochentag</div>
+        <div class="compare-row">
+          <span class="compare-label">Best</span>
+          <span class="compare-val">${WEEKDAYS[(bestIdx+1) % 7]} · ${Math.round(avgs[bestIdx] * 100)}%</span>
+        </div>
+        <div class="compare-row">
+          <span class="compare-label">Schwach</span>
+          <span class="compare-val">${WEEKDAYS[(worstIdx+1) % 7]} · ${Math.round(avgs[worstIdx] * 100)}%</span>
+        </div>
+        <div class="weekday-row">${bars}</div>
+      </div>
+    `;
+  }
+
+  function buildBestWorst(days) {
+    const scored = days.map(d => {
+      const score = (d.completion.learn + d.completion.sport + d.completion.food + d.completion.work);
+      return { date: d.date, score, c: d.completion };
+    }).filter(d => d.score > 0);
+
+    if (!scored.length) return '';
+
+    scored.sort((a, b) => b.score - a.score);
+    const best = scored[0];
+    const worst = scored[scored.length - 1];
+
+    const fmt = d => d.getDate() + '. ' + MONTH_NAMES[d.getMonth()].slice(0,3);
+    const rings = c => Math.round((c.learn + c.sport + c.food + c.work) / 4 * 100);
+
+    return `
+      <div class="compare-card">
+        <div class="compare-title">Tages-Ranking</div>
+        <div class="compare-row">
+          <span class="compare-label">Bester Tag</span>
+          <span class="compare-val">${fmt(best.date)} · ${rings(best.c)}%</span>
+        </div>
+        <div class="compare-row">
+          <span class="compare-label">Schwächster</span>
+          <span class="compare-val">${fmt(worst.date)} · ${rings(worst.c)}%</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function buildStreaks() {
+    // Current streak: how many consecutive days from today backwards had at least 1 goal met
+    let current = 0;
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const c = computeCompletion(getData(dateKey(d)));
+      const anyMet = c.learn >= 1 || c.work >= 1 || c.sportBool || c.foodBool;
+      if (anyMet) current++;
+      else if (i > 0) break; // allow today to be incomplete
+      else if (i === 0 && !anyMet) { current = 0; continue; }
+    }
+
+    // Longest streak of full 4/4 days
+    let longestFull = 0, currentFull = 0;
+    const sortedKeys = Object.keys(allData).sort();
+    sortedKeys.forEach(k => {
+      const c = computeCompletion(allData[k]);
+      const full = c.learn >= 1 && c.work >= 1 && c.sportBool && c.foodBool;
+      if (full) { currentFull++; longestFull = Math.max(longestFull, currentFull); }
+      else currentFull = 0;
+    });
+
+    return `
+      <div class="compare-card">
+        <div class="compare-title">Streaks</div>
+        <div class="compare-row">
+          <span class="compare-label">Aktuelle Streak</span>
+          <span class="compare-val">${current} ${current === 1 ? 'Tag' : 'Tage'}</span>
+        </div>
+        <div class="compare-row">
+          <span class="compare-label">Längste 4/4 Streak</span>
+          <span class="compare-val">${longestFull} ${longestFull === 1 ? 'Tag' : 'Tage'}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  // ============ EVENTS ============
+  document.getElementById('todayBtn').addEventListener('click', () => {
+    selectedDate = new Date();
+    displayMonth = new Date();
+    renderCalendar();
+    renderDay();
+  });
+
+  document.getElementById('prevMonth').addEventListener('click', () => {
+    displayMonth = new Date(displayMonth.getFullYear(), displayMonth.getMonth() - 1, 1);
+    renderCalendar();
+  });
+  document.getElementById('nextMonth').addEventListener('click', () => {
+    displayMonth = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 1);
+    renderCalendar();
+  });
+
+  document.getElementById('learnAdd').addEventListener('click', () => {
+    const inp = document.getElementById('learnInput');
+    addHours('learn', parseFloat(inp.value));
+    inp.value = '';
+  });
+  document.getElementById('workAdd').addEventListener('click', () => {
+    const inp = document.getElementById('workInput');
+    addHours('work', parseFloat(inp.value));
+    inp.value = '';
+  });
+
+  document.querySelectorAll('.quick-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      addHours(b.dataset.tracker, parseFloat(b.dataset.val));
+    });
+  });
+
+  document.querySelectorAll('.tap-area').forEach(a => {
+    a.addEventListener('click', () => toggleTap(a.dataset.tracker));
+  });
+
+  document.addEventListener('click', async e => {
+    if (e.target.classList.contains('del')) {
+      const kind = e.target.dataset.kind;
+      const idx = Number(e.target.dataset.idx);
+      currentData[kind].splice(idx, 1);
+      await persist();
+    }
+  });
+
+  document.getElementById('learnInput').addEventListener('keypress', e => {
+    if (e.key === 'Enter') document.getElementById('learnAdd').click();
+  });
+  document.getElementById('workInput').addEventListener('keypress', e => {
+    if (e.key === 'Enter') document.getElementById('workAdd').click();
+  });
+
+  // Nav
+  document.querySelectorAll('.nav-item').forEach(n => {
+    n.addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
+      n.classList.add('active');
+      document.getElementById('page-' + n.dataset.page).classList.add('active');
+      if (n.dataset.page === 'stats') renderStats();
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    });
+  });
+
+  // Range tabs
+  document.querySelectorAll('.range-tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.range-tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      statsRange = Number(t.dataset.range);
+      renderStats();
+    });
+  });
+
+  let toastTimer = null;
+  function showToast(msg) { /* disabled */ }
+
+  // ============ EXPORT / IMPORT ============
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const payload = {
+      app: 'reset-tracker',
+      exported: new Date().toISOString(),
+      data: allData
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const d = new Date();
+    a.download = `reset-backup-${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('importBtn').addEventListener('click', () => {
+    document.getElementById('importFile').click();
+  });
+
+  document.getElementById('importFile').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const payload = JSON.parse(text);
+      if (!payload.data || payload.app !== 'reset-tracker') {
+        alert('Das ist keine gültige Reset-Backup-Datei.');
+        return;
+      }
+      const count = Object.keys(payload.data).length;
+      if (!confirm(`${count} Tage importieren? Bestehende Daten für diese Tage werden überschrieben.`)) return;
+      for (const [k, v] of Object.entries(payload.data)) {
+        allData[k] = v;
+        await storage.set(k, JSON.stringify(v));
+      }
+      renderCalendar();
+      renderDay();
+      renderStats();
+      alert('Import erfolgreich: ' + count + ' Tage geladen.');
+    } catch(err) {
+      alert('Fehler beim Import: ' + err.message);
+    }
+    e.target.value = '';
+  });
+
+  // ============ INIT ============
+  (async function init() {
+    // Show calendar skeleton first with empty rings
+    renderCalendar();
+    renderDay();
+    // Then bulk-load all data in the background
+    await preloadAll();
+    // Re-render with data
+    renderCalendar();
+    renderDay();
+  })();
+</script>
+</body>
+</html>
