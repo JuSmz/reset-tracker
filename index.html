@@ -554,6 +554,68 @@
     font-size: 15px;
   }
 
+  /* Backup reminder */
+  .backup-banner {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-elev);
+    border: 1px solid #3a2a1a;
+    border-left: 3px solid #f59e0b;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    font-family: var(--sans);
+  }
+  .backup-banner.show { display: flex; }
+  .backup-banner .bb-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(245, 158, 11, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #f59e0b;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 16px;
+  }
+  .backup-banner .bb-text {
+    flex: 1;
+    font-size: 12px;
+    color: var(--ink-dim);
+    line-height: 1.4;
+  }
+  .backup-banner .bb-text strong {
+    color: var(--ink);
+    font-weight: 500;
+    display: block;
+    margin-bottom: 2px;
+  }
+  .backup-banner button {
+    background: #f59e0b;
+    border: none;
+    color: #000;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .backup-banner .dismiss {
+    background: transparent;
+    color: var(--ink-faint);
+    font-size: 18px;
+    padding: 4px 8px;
+    font-weight: 400;
+  }
+
   /* Bottom nav */
   .bottom-nav {
     position: fixed;
@@ -629,6 +691,16 @@
 
 <!-- ============ DAILY PAGE ============ -->
 <div class="page active" id="page-daily">
+  <div class="backup-banner" id="backupBanner">
+    <div class="bb-icon">!</div>
+    <div class="bb-text">
+      <strong id="backupBannerTitle">Backup fällig</strong>
+      <span id="backupBannerSub">Dein letzter Export ist eine Weile her.</span>
+    </div>
+    <button id="backupBannerBtn">Backup</button>
+    <button class="dismiss" id="backupBannerDismiss">×</button>
+  </div>
+
   <div class="cal-header">
     <div class="month-name" id="monthName"></div>
     <div class="nav-btns">
@@ -1391,7 +1463,7 @@
   function showToast(msg) { /* disabled */ }
 
   // ============ EXPORT / IMPORT ============
-  document.getElementById('exportBtn').addEventListener('click', () => {
+  function doExport() {
     const payload = {
       app: 'reset-tracker',
       exported: new Date().toISOString(),
@@ -1407,7 +1479,53 @@
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    // Remember when last backup was made
+    localStorage.setItem('reset:lastBackup', new Date().toISOString());
+    updateBackupBanner();
+  }
+
+  document.getElementById('exportBtn').addEventListener('click', doExport);
+  document.getElementById('backupBannerBtn').addEventListener('click', doExport);
+  document.getElementById('backupBannerDismiss').addEventListener('click', () => {
+    // Snooze for 3 days
+    const snoozeUntil = new Date();
+    snoozeUntil.setDate(snoozeUntil.getDate() + 3);
+    localStorage.setItem('reset:backupSnoozeUntil', snoozeUntil.toISOString());
+    document.getElementById('backupBanner').classList.remove('show');
   });
+
+  function updateBackupBanner() {
+    const banner = document.getElementById('backupBanner');
+    const title = document.getElementById('backupBannerTitle');
+    const sub = document.getElementById('backupBannerSub');
+
+    const hasData = Object.keys(allData).length > 0;
+    if (!hasData) { banner.classList.remove('show'); return; }
+
+    const snooze = localStorage.getItem('reset:backupSnoozeUntil');
+    if (snooze && new Date(snooze) > new Date()) {
+      banner.classList.remove('show');
+      return;
+    }
+
+    const last = localStorage.getItem('reset:lastBackup');
+    if (!last) {
+      title.textContent = 'Noch nie gesichert';
+      sub.textContent = 'Mach jetzt dein erstes Backup, um deine Daten zu schützen.';
+      banner.classList.add('show');
+      return;
+    }
+
+    const lastDate = new Date(last);
+    const daysSince = Math.floor((Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysSince >= 7) {
+      title.textContent = `Backup fällig · ${daysSince} Tage her`;
+      sub.textContent = 'Sichere deine Daten, bevor irgendwas schief geht.';
+      banner.classList.add('show');
+    } else {
+      banner.classList.remove('show');
+    }
+  }
 
   document.getElementById('importBtn').addEventListener('click', () => {
     document.getElementById('importFile').click();
@@ -1432,6 +1550,7 @@
       renderCalendar();
       renderDay();
       renderStats();
+      updateBackupBanner();
       alert('Import erfolgreich: ' + count + ' Tage geladen.');
     } catch(err) {
       alert('Fehler beim Import: ' + err.message);
@@ -1441,14 +1560,12 @@
 
   // ============ INIT ============
   (async function init() {
-    // Show calendar skeleton first with empty rings
     renderCalendar();
     renderDay();
-    // Then bulk-load all data in the background
     await preloadAll();
-    // Re-render with data
     renderCalendar();
     renderDay();
+    updateBackupBanner();
   })();
 </script>
 </body>
